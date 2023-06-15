@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/tibo/Library/CloudStorage/GoogleDrive-gt.thibaut%40gmail.com/Mon%20Drive/Datascience/DataScience%20-%20Jedha/4.Certification/wakeup/wakeup/mlflow/mlruns/0/f425afec9b844116982e28c6ce6d7616/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: f425afec9b844116982e28c6ce6d7616
+run_name: melodic-ant-21
+run_uuid: f425afec9b844116982e28c6ce6d7616
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1686815383804
+status: 1
+tags: []
+user_id: tibo
