@@ -11,3 +11,7 @@ scikit-learn
 python-multipart
 fsspec
 s3fs
+numpy
+tensorflow
+cv2
+mlxtend

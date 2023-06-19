@@ -4,6 +4,10 @@ import pandas as pd
 from pydantic import BaseModel
 from typing import Literal, List, Union
 from fastapi import FastAPI, File, UploadFile
+import numpy as np
+import tensorflow as tf
+import cv2
+from mlxtend.image import extract_face_landmarks
 
 description = """ eazeaze """
 

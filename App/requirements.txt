@@ -12,3 +12,7 @@ python-multipart
 fsspec
 s3fs
 streamlit >= 1.10.0
+requests
+botocore
+matplotlib
+seaborn

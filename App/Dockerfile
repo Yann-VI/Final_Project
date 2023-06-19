@@ -2,7 +2,9 @@ FROM python
 
 WORKDIR /home/app
 
-RUN pip install boto3 pandas gunicorn streamlit scikit-learn matplotlib seaborn plotly
-COPY . .
+COPY requirements.txt /dependencies/requirements.txt
+RUN pip install -r /dependencies/requirements.txt
+
+COPY . /home/app
 
 CMD streamlit run --server.port $PORT app.py

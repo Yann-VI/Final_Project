@@ -1,112 +1,65 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px 
-import plotly.graph_objects as go
-import numpy as np
+import boto3
+import os
+import requests
+import botocore
+from io import BytesIO
 
 
-### CONFIG
-st.set_page_config(
-    page_title="E-commerce",
-    page_icon="💸",
-    layout="wide"
-  )
+S3_BUCKET = "wakeup-jedha"
 
-### TITLE AND TEXT
-st.title("Build dashboards with Streamlit 🎨")
-
-st.markdown("""
-    Welcome to this awesome `streamlit` dashboard. This library is great to build very fast and
-    intuitive charts and application running on the web. Here is a showcase of what you can do with
-    it. Our data comes from an e-commerce website that simply displays samples of customer sales. Let's check it out.
-    Also, if you want to have a real quick overview of what streamlit is all about, feel free to watch the below video 👇
-""")
-
-### LOAD AND CACHE DATA
-DATA_URL = ('https://full-stack-assets.s3.eu-west-3.amazonaws.com/Deployment/e-commerce_data.csv')
-
-@st.cache # this lets the 
-def load_data(nrows):
-    data = pd.read_csv(DATA_URL, nrows=nrows)
-    data["Date"] = data["Date"].apply(lambda x: pd.to_datetime(",".join(x.split(",")[-2:])))
-    data["currency"] = data["currency"].apply(lambda x: pd.to_numeric(x[1:]))
-    return data
-
-data_load_state = st.text('Loading data...')
-data = load_data(1000)
-data_load_state.text("") # change text from "Loading data..." to "" once the the load_data function has run
-
-## Run the below code if the check is checked ✅
-if st.checkbox('Show raw data'):
-    st.subheader('Raw data')
-    st.write(data) 
-
-
-### SHOW GRAPH STREAMLIT
-
-currency_per_country = data.set_index("country")["currency"]
-st.bar_chart(currency_per_country)
-
-### SHOW GRAPH PLOTLY + STREAMLIT
-
-st.subheader("Simple bar chart built with Plotly")
-st.markdown("""
-    Now, the best thing about `streamlit` is its compatibility with other libraries. For example, you
-    don't need to actually use built-in charts to create your dashboard, you can use :
+def save_image_to_s3(filename, name_output):
+    s3_client = boto3.client('s3', aws_access_key_id=AWS_ID_KEY,aws_secret_access_key=SECRET_ACCESS_KEY)
+    try:
+        with open(filename, 'rb') as file:
+            s3_client.upload_fileobj(file, S3_BUCKET, name_output)
+        os.remove(filename)
+        return True
+    except botocore.exceptions.ClientError as e:
+        st.error(f"Error uploading image to S3: {e}")
+        return False
     
-    * [`plotly`](https://docs.streamlit.io/library/api-reference/charts/st.plotly_chart) 
-    * [`matplotlib`](https://docs.streamlit.io/library/api-reference/charts/st.pyplot)
-    * [`bokeh`](https://docs.streamlit.io/library/api-reference/charts/st.bokeh_chart)
-    * ...
-    This way, you have all the flexibility you need to build awesome dashboards. 🥰
-""")
-fig = px.histogram(data.sort_values("country"), x="country", y="currency", barmode="group")
-st.plotly_chart(fig, use_container_width=True)
+# Save the uploaded file to a temporary file before uploading to S3
+def save_uploaded_file_to_temp(uploaded_file):
+    try:
+        with open(uploaded_file.name, "wb") as f:
+            f.write(uploaded_file.getvalue())
+        return uploaded_file.name
+    except Exception as e:
+        st.exception("Failed to save file.")
+        return None
 
 
-### SIDEBAR
-st.sidebar.header("Build dashboards with Streamlit")
-st.sidebar.markdown("""
-    * [Load and showcase data](#load-and-showcase-data)
-    * [Charts directly built with Streamlit](#simple-bar-chart-built-directly-with-streamlit)
-    * [Charts built with Plotly](#simple-bar-chart-built-with-plotly)
-    * [Input Data](#input-data)
-""")
-e = st.sidebar.empty()
-e.write("")
-st.sidebar.write("Made with 💖 by [Jedha](https://jedha.co)")
 
-### EXPANDER
+def main():
+    st.title("Image Loader")
 
-with st.expander("⏯️ Watch this 15min tutorial"):
-    st.video("https://youtu.be/B2iAodr0fOo")
+    # File uploader
+    uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
-st.markdown("---")
+    if uploaded_file is not None:
+        # Process the image here (e.g., save it to a specific location)
+        #image = uploaded_file.getbuffer()
+        file_path = save_uploaded_file_to_temp(uploaded_file)
+        save_image_to_s3(file_path, 'temp/test.jpg')
+        st.success("Image loaded successfully!")
+        st.image(uploaded_file)
 
-#### CREATE TWO COLUMNS
-col1, col2 = st.columns(2)
+        if st.button("Prediction"):
+            # Send request to FastAPI server
+            file_name = "uploaded_image.png"
+            
+            
+            
+            api_url = "https://wakeup-api.herokuapp.com/predict"  # Replace with your FastAPI server URL
+            data = {"file_name": file_name}
+            response = requests.post(api_url, json=data)
 
-with col1:
-        st.markdown("**1️⃣ Example of input widget**")
-        country = st.selectbox("Select a country you want to see all time sales", data["country"].sort_values().unique())
-        
-        country_sales = data[data["country"]==country]
-        fig = px.histogram(country_sales, x="Date", y="currency")
-        fig.update_layout(bargap=0.2)
-        st.plotly_chart(fig, use_container_width=True)
+            if response.status_code == 200:
+                result = response.json()
+                st.write("Prediction Result:", result)
+            else:
+                st.write("Prediction Failed!")
 
-with col2:
-    st.markdown("**2️⃣ Example of input form**")
-
-    with st.form("average_sales_per_country"):
-        country = st.selectbox("Select a country you want to see sales", data["country"].sort_values().unique())
-        start_period = st.date_input("Select a start date you want to see your metric")
-        end_period = st.date_input("Select an end date you want to see your metric")
-        submit = st.form_submit_button("submit")
-
-        if submit:
-            avg_period_country_sales = data[(data["country"]==country)]
-            start_period, end_period = pd.to_datetime(start_period), pd.to_datetime(end_period)
-            mask = (avg_period_country_sales["Date"] > start_period) & (avg_period_country_sales["Date"] < end_period)
-            avg_period_country_sales = avg_period_country_sales[mask].mean()
-            st.metric("Average sales during selected period (in $)", np.round(avg_period_country_sales, 2))
+if __name__ == '__main__':
+    main()
