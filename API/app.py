@@ -25,6 +25,79 @@ app = FastAPI(
     openapi_tags=tags_metadata
 )
 
+def eyes_recognition(image):
+
+  # Prepare image for eyes detection
+  color = cv2.imread(image)
+  gray = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
+
+  # Extract landmarks coordinates
+  landmarks = extract_face_landmarks(gray)
+
+  # Calculate a margin around the eye
+  extractmarge = int(len(gray)*0.05)
+
+  # Left eye maximal coordinates
+  lx1 = landmarks[36][0]
+  lx2 = landmarks[39][0]
+  ly1 = landmarks[37][1]
+  ly2 = landmarks[40][1]
+  lefteye = color[ly1 - extractmarge : ly2 + extractmarge, lx1 - extractmarge : lx2 + extractmarge]
+
+  # Right eye maximal coordinates
+  rx1 = landmarks[42][0]
+  rx2 = landmarks[45][0]
+  ry1 = landmarks[43][1]
+  ry2 = landmarks[46][1]
+  righteye = color[ry1 - extractmarge : ry2 + extractmarge, rx1 - extractmarge : rx2 + extractmarge]
+
+  # Return eyes images
+  return lefteye, righteye
+
+# Function to preprocess eye informations extract with eye_detection function before launching the prediction
+def eye_preprocess(eye):
+
+  # Resize your image to fit model entry
+  resize = tf.image.resize(
+    eye,
+    size = (52, 52),
+    method = tf.image.ResizeMethod.BILINEAR
+  )
+
+  # Switch to grayscale
+  grayscale = tf.image.rgb_to_grayscale(
+      resize
+  )
+
+  # Normalize your data
+  norm = grayscale / 255
+
+  # Add one dimension to fit model entry
+  final = tf.expand_dims(
+      norm, axis = 0
+  )
+
+  # Return the final image to make your prediction
+  return final
+
+def prediction(lefteye, righteye, model):
+
+  class_labels = ["close", "open"]
+
+  # Predict and return predictions
+  # For lefteye
+  preds_left = model.predict(lefteye)
+  pred_left = np.argmax(preds_left, axis = 1)
+  # For righteye
+  preds_right = model.predict(righteye)
+  pred_right = np.argmax(preds_right, axis = 1)
+
+  if pred_left == pred_right:
+    state = class_labels[pred_left[0]]
+  else:
+    state = "wink"
+
+  return state
 
 @app.get("/", tags=["Introduction Endpoints"])
 async def index():
@@ -39,22 +112,21 @@ async def predict(file: UploadFile= File(...)):
     """
     Description à faire 
     """
-    response = {"filename": file.filename}
+    # Import image
+    image = file
+    # Launch eye recognition
+    lefteye, righteye = eyes_recognition(image)
+    # Launch eye preprocessing on both eyes extracted with eye recognition
+    lefteye = eye_preprocess(lefteye)
+    righteye = eye_preprocess(righteye)
+    # Import and load your model
+    tf.keras.utils.get_file("/content/CNN_model_2_gray_import.h5",
+                            origin="https://wakeup-jedha.s3.eu-west-3.amazonaws.com/wakeup/model/CNN_model_2_gray.h5")
+    modelconv = tf.keras.models.load_model("/content/CNN_model_2_gray_import.h5")
+    # Make your prediction and return eye state
+    response = prediction(lefteye, righteye, modelconv)
     return response
-    """
-    # Read data 
-    years_experience = pd.DataFrame({"YearsExperience": [predictionFeatures.YearsExperience]})
 
-    # Log model from mlflow 
-    logged_model = 'runs:/323c3b4a6a6242b7837681bd5c539b27/salary_estimator'
-
-    # Load model as a PyFuncModel.
-    loaded_model = mlflow.pyfunc.load_model(logged_model)
-    prediction = loaded_model.predict(years_experience)
-
-    # Format response
-    response = {"prediction": prediction.tolist()[0]}
-    """
 
 if __name__=="__main__":
     uvicorn.run(app, host="0.0.0.0", port=4000)

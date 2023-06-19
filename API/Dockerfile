@@ -1,8 +1,11 @@
-FROM python
+#FROM jjanzic/docker-python3-opencv
+#FROM python:3.10.12
+FROM hdgigante/python-opencv:4.7.0-ubuntu
 
 WORKDIR /home/app
 
 COPY requirements.txt /dependencies/requirements.txt
+#RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 RUN pip install -r /dependencies/requirements.txt
 
 COPY . /home/app
