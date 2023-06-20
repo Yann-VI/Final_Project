@@ -28,7 +28,8 @@ app = FastAPI(
 def eyes_recognition(image):
 
   # Prepare image for eyes detection
-  color = cv2.imread(image)
+  #color = cv2.imread(image)
+  color = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_COLOR)
   gray = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
 
   # Extract landmarks coordinates
@@ -113,18 +114,25 @@ async def predict(file: UploadFile= File(...)):
     Description à faire 
     """
     # Import image
-    image = file
+    image = await file.read()
     # Launch eye recognition
-    lefteye, righteye = eyes_recognition(image)
-    # Launch eye preprocessing on both eyes extracted with eye recognition
-    lefteye = eye_preprocess(lefteye)
-    righteye = eye_preprocess(righteye)
-    # Import and load your model
-    tf.keras.utils.get_file("/content/CNN_model_2_gray_import.h5",
-                            origin="https://wakeup-jedha.s3.eu-west-3.amazonaws.com/wakeup/model/CNN_model_2_gray.h5")
-    modelconv = tf.keras.models.load_model("/content/CNN_model_2_gray_import.h5")
-    # Make your prediction and return eye state
-    response = prediction(lefteye, righteye, modelconv)
+    try:
+        lefteye, righteye = eyes_recognition(image)
+        # Launch eye preprocessing on both eyes extracted with eye recognition
+        lefteye = eye_preprocess(lefteye)
+        righteye = eye_preprocess(righteye)
+        # Import and load your model
+        tf.keras.utils.get_file("/home/app/CNN_model_2_gray_import.h5",
+                                origin="https://wakeup-jedha.s3.eu-west-3.amazonaws.com/wakeup/model/CNN_model_2_gray.h5")
+        modelconv = tf.keras.models.load_model("/home/app/CNN_model_2_gray_import.h5")
+        # Make your prediction and return eye state
+        response = prediction(lefteye, righteye, modelconv)
+        return response
+    except:
+        response = "Error"
+        return response
+    
+    
     return response
 
 

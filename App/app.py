@@ -6,7 +6,7 @@ import botocore
 from io import BytesIO
 
 
-S3_BUCKET = "wakeup-jedha"
+""" S3_BUCKET = "wakeup-jedha"
 
 def save_image_to_s3(filename, name_output):
     s3_client = boto3.client('s3', aws_access_key_id=AWS_ID_KEY,aws_secret_access_key=SECRET_ACCESS_KEY)
@@ -27,7 +27,7 @@ def save_uploaded_file_to_temp(uploaded_file):
         return uploaded_file.name
     except Exception as e:
         st.exception("Failed to save file.")
-        return None
+        return None """
 
 
 
@@ -60,6 +60,10 @@ def main():
                 st.write("Prediction Result:", result)
             else:
                 st.write("Prediction Failed!")
+
+
+
+
 
 if __name__ == '__main__':
     main()
