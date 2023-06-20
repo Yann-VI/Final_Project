@@ -113,6 +113,7 @@ async def predict(file: UploadFile= File(...)):
     """
     Description à faire 
     """
+    print(type(file),"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     # Import image
     image = await file.read()
     # Launch eye recognition
@@ -131,9 +132,6 @@ async def predict(file: UploadFile= File(...)):
     except:
         response = "Error"
         return response
-    
-    
-    return response
 
 
 if __name__=="__main__":
