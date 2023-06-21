@@ -52,8 +52,13 @@ def eyes_recognition(image):
   ry2 = landmarks[46][1]
   righteye = color[ry1 - extractmarge : ry2 + extractmarge, rx1 - extractmarge : rx2 + extractmarge]
 
+  bonus = int(extractmarge/2)
+  # draw rectangles on color
+  cv2.rectangle(color, (lx1-bonus,ly1-bonus), (lx2+bonus,ly2+bonus), (255,0,0), 2)
+  cv2.rectangle(color, (rx1-bonus,ry1-bonus), (rx2+bonus,ry2+bonus), (255,0,0), 2)
+  
   # Return eyes images
-  return lefteye, righteye
+  return lefteye, righteye, color
 
 # Function to preprocess eye informations extract with eye_detection function before launching the prediction
 def eye_preprocess(eye):
@@ -113,12 +118,12 @@ async def predict(file: UploadFile= File(...)):
     """
     Description à faire 
     """
-    print(type(file),"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     # Import image
     image = await file.read()
     # Launch eye recognition
     try:
-        lefteye, righteye = eyes_recognition(image)
+        # lefteye, righteye, lx1, lx2, ly1, ly2, rx1, rx2, ry1, ry2 = eyes_recognition(image)
+        lefteye, righteye, detected_eyes = eyes_recognition(image)
         # Launch eye preprocessing on both eyes extracted with eye recognition
         lefteye = eye_preprocess(lefteye)
         righteye = eye_preprocess(righteye)
@@ -128,10 +133,16 @@ async def predict(file: UploadFile= File(...)):
         modelconv = tf.keras.models.load_model("/home/app/CNN_model_2_gray_import.h5")
         # Make your prediction and return eye state
         response = prediction(lefteye, righteye, modelconv)
-        return response
+        detected_eyes = detected_eyes.tolist()
+  
+        predicted_image = {'response':response, 'image':detected_eyes}
+        #coordinates = {"response":response, "lx1":lx1.item(), "lx2":lx2.item(), "ly1":ly1.item(), "ly2":ly2.item(), "rx1":rx1.item(), "rx2":rx2.item(), "ry1":ry1.item(), "ry2":ry2.item()}
+        return predicted_image
     except:
         response = "Error"
-        return response
+        predicted_image = {'response':response, 'image':image}
+        #coordinates = {"response":response, "lx1":lx1.item(), "lx2":lx2.item(), "ly1":ly1.item(), "ly2":ly2.item(), "rx1":rx1.item(), "rx2":rx2.item(), "ry1":ry1.item(), "ry2":ry2.item()}
+        return predicted_image
 
 
 if __name__=="__main__":
