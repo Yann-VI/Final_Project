@@ -9,6 +9,8 @@ from fastapi import FastAPI, File, UploadFile
 import numpy as np
 import tensorflow as tf
 import cv2
+import dlib
+from imutils import face_utils
 from mlxtend.image import extract_face_landmarks
 
 
@@ -146,25 +148,25 @@ async def predict(file: UploadFile= File(...)):
 
     try:
         
-        # Launch eye recognition
-        lefteye, righteye, detected_eyes = eyes_recognition(image)
+      # Launch eye recognition
+      lefteye, righteye, detected_eyes = eyes_recognition(image)
 
-        # Launch eye preprocessing on both eyes extracted with eye recognition
-        lefteye = eye_preprocess(lefteye)
-        righteye = eye_preprocess(righteye)
+      # Launch eye preprocessing on both eyes extracted with eye recognition
+      lefteye = eye_preprocess(lefteye)
+      righteye = eye_preprocess(righteye)
 
-        # Import and load your model
-        tf.keras.utils.get_file("/home/app/CNN_model_2_gray_import.h5",
-                                origin="https://wakeup-jedha.s3.eu-west-3.amazonaws.com/wakeup/model/CNN_model_2_gray.h5")
-        modelconv = tf.keras.models.load_model("/home/app/CNN_model_2_gray_import.h5")
+      # Import and load your model
+      tf.keras.utils.get_file("/home/app/CNN_model_2_gray_import.h5",
+                                        origin="https://wakeup-jedha.s3.eu-west-3.amazonaws.com/wakeup/model/CNN_model_2_gray.h5")
+      modelconv = tf.keras.models.load_model("/home/app/CNN_model_2_gray_import.h5")
 
-        # Make your prediction and return eye state
-        response = prediction(lefteye, righteye, modelconv)
-        detected_eyes = detected_eyes.tolist()
+      # Make your prediction and return eye state
+      response = prediction(lefteye, righteye, modelconv)
+      detected_eyes = detected_eyes.tolist()
   
-        predicted_image = {'response':response, 'image':detected_eyes}
+      predicted_image = {'response':response, 'image':detected_eyes}
 
-        return predicted_image
+      return predicted_image
     
     except:
         
